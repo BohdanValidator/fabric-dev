@@ -129,7 +129,6 @@ The project needs these files (contents in section 8):
 | File | Purpose |
 |---|---|
 | `.env` | Your machine paths, credentials, target workspace |
-| `.env.example` | Same keys, blank values — for colleagues |
 | `.gitignore` | Keeps secrets and build output out of Git |
 | `requirements-local.txt` | Python dependencies |
 | `Makefile` | Sync and environment commands |
@@ -393,8 +392,8 @@ FABRIC_TENANT_ID=
 FABRIC_CLIENT_ID=
 FABRIC_CLIENT_SECRET=
 
-FABRIC_WORKSPACE=Connection_test
-FABRIC_LAKEHOUSE=testing_lh
+FABRIC_WORKSPACE=XXX
+FABRIC_LAKEHOUSE=XX
 ```
 
 ### `.gitignore`
