@@ -1,0 +1,18 @@
+# Spark + Delta — must match your Fabric runtime versions
+pyspark==3.5.1
+delta-spark==3.1.0
+ipykernel==6.29.0
+
+# Local config
+python-dotenv==1.0.1
+
+# display() shim
+pandas==2.2.3
+numpy==1.26.4
+itables==2.2.4
+ipython==8.26.0
+
+# SQL endpoint access (your existing connection module)
+pyodbc==5.1.0
+sqlalchemy==2.0.35
+azure-identity==1.17.1

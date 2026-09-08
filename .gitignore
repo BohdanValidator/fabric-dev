@@ -1,0 +1,38 @@
+# --- secrets ---
+.env
+.env.local
+*.pem
+*.key
+
+# --- python ---
+.venv/
+.venv\
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+requirements-lock.txt
+
+# --- spark / delta local artifacts ---
+spark-warehouse/
+metastore_db/
+derby.log
+*.crc
+_delta_log/
+
+# --- jars cached locally (uncomment to commit them for offline onboarding) ---
+jars/
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db
+*.swp
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+notebooks\
+.notebooks/
+notebooks/
