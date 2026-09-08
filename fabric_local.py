@@ -35,7 +35,18 @@ def bootstrap():
     spark = _create_spark()
     register_sql_magic(spark)
     return spark
-
+def storage_options() -> dict:
+    """fsspec credentials for OneLake — empty in Fabric, where the runtime handles it."""
+    from azure.identity import ClientSecretCredential
+    return {
+        "account_name": "onelake",
+        "account_host": ACC,
+        "credential": ClientSecretCredential(
+            tenant_id=os.environ["FABRIC_TENANT_ID"],
+            client_id=os.environ["FABRIC_CLIENT_ID"],
+            client_secret=os.environ["FABRIC_CLIENT_SECRET"],
+        ),
+    }
 
 def set_target(ws: str | None = None, lh: str | None = None):
     """Switch workspace/lakehouse without restarting the kernel."""

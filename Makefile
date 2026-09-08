@@ -45,9 +45,7 @@ pull:
 	$(FAB) export "$(WS).Workspace/$(NB).Notebook" -o "$(DIR)" --format .ipynb -f
 
 pull-all:
-	@if not exist "$(subst /,\,$(DIR))" mkdir "$(subst /,\,$(DIR))"
-	$(FAB) export "$(WS).Workspace" -o "$(DIR)" -a -f
-
+	$(PYTHON) pull_notebooks.py "$(WS)" "$(DIR)"
 push:
 	@if "$(NB)"=="" (echo NB required: make push NB=name && exit 1)
 	$(PYTHON) fix_metadata.py "$(DIR)/$(NB).Notebook/notebook-content.ipynb"
