@@ -216,8 +216,10 @@ except ImportError:
 if not IS_FABRIC:
     import sys
     sys.path.insert(0, r"C:\files\fabric-dev")
-    from fabric_local import bootstrap, display, table_path, set_target
+    from fabric_local import bootstrap, display, table_path, set_target, storage_options
     spark = bootstrap()
+else:
+    def storage_options(): return {}
 
 print("Fabric" if IS_FABRIC else "Local", spark.version)
 ```
@@ -362,3 +364,4 @@ if a colleague edited a notebook in the portal since your pull, your push
 silently discards their change. Push one notebook at a time, and only ones
 you actually edited. Run `git init` and commit right after pulling; it is the
 only recovery path.
+
