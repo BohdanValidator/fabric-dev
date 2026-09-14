@@ -1,0 +1,13 @@
+{
+  "name": "fabric-dev",
+  "build": { "dockerfile": "../Dockerfile", "context": ".." },
+  // "workspaceFolder": "/workspace",
+  "runArgs": ["--env-file", "${localWorkspaceFolder}/.env"],
+  "containerEnv": { "PROJECT_ROOT": "/workspaces/fabric-dev" },
+  "customizations": {
+    "vscode": {
+      "extensions": ["ms-python.python", "ms-toolsai.jupyter"],
+      "settings": { "python.defaultInterpreterPath": "/usr/local/bin/python" }
+    }
+  }
+}

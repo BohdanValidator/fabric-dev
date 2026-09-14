@@ -2,7 +2,7 @@
 import os
 import sys
 from pathlib import Path
-
+import glob
 from IPython.display import display as _ipy_display
 from IPython.core.getipython import get_ipython
 
@@ -27,7 +27,8 @@ def bootstrap():
         sys.path.insert(0, root)
 
     os.environ["JAVA_HOME"] = os.environ["JAVA_HOME"]
-    os.environ["PATH"] = os.environ["HADOOP_HOME"] + r"\bin;" + os.environ["PATH"]
+    if sys.platform == "win32":
+        os.environ["PATH"] = os.environ["HADOOP_HOME"] + r"\bin;" + os.environ["PATH"]
     os.environ["PYSPARK_PYTHON"] = sys.executable
     os.environ["PYSPARK_DRIVER_PYTHON"] = sys.executable
 
@@ -35,6 +36,14 @@ def bootstrap():
     spark = _create_spark()
     register_sql_magic(spark)
     return spark
+
+def _jar_config(builder):
+    jar_dir = os.environ.get("SPARK_EXTRA_JARS")
+    if jar_dir and os.path.isdir(jar_dir):
+        return builder.config("spark.jars", ",".join(glob.glob(f"{jar_dir}/*.jar")))
+    return builder.config("spark.jars.packages",
+                          "io.delta:delta-spark_2.12:3.1.0,"
+                          "org.apache.hadoop:hadoop-azure:3.3.4")
 def storage_options() -> dict:
     """fsspec credentials for OneLake — empty in Fabric, where the runtime handles it."""
     from azure.identity import ClientSecretCredential

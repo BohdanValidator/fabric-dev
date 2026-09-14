@@ -25,7 +25,7 @@ derby.log
 _delta_log/
 
 # --- jars cached locally (uncomment to commit them for offline onboarding) ---
-jars/
+# jars/
 
 # --- os / editor ---
 .DS_Store
