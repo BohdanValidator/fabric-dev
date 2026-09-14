@@ -1,4 +1,4 @@
-FAB     := C:/tools/fabcli/Scripts/fab.exe
+FAB     := C:\tools\fabcli\Scripts\fab.exe
 PY      := py -3.11
 VENV    := .venv
 PYTHON  := $(VENV)/Scripts/python.exe
@@ -13,11 +13,14 @@ WSDIR   := $(subst $(space),_,$(WS))
 DIR     := ./notebooks/$(WSDIR)
 NB      ?=
 
-.PHONY: help login list list-nb pull pull-all push run setup reinstall check freeze
+.PHONY: help use envs login list list-nb pull pull-all push run setup reinstall check freeze
 
 help:
 	@echo "Workspace: $(WS)  ->  $(DIR)"
 	@echo "Override with WS=\"Other Workspace\""
+	@echo ""
+	@echo "  make envs                 - list available env files"
+	@echo "  make use ENV=semantic     - activate envs/semantic.env"
 	@echo ""
 	@echo "  make list-nb              - list notebooks in the workspace"
 	@echo "  make pull NB=name         - download one notebook"
@@ -29,6 +32,15 @@ help:
 	@echo "  make reinstall            - reinstall deps into existing .venv"
 	@echo "  make check                - show python version, check deps"
 	@echo "  make freeze               - write requirements-lock.txt"
+
+envs:
+	@dir /b envs\*.env
+
+use:
+	@if "$(ENV)"=="" (echo ENV required: make use ENV=semantic && exit 1)
+	@if not exist "envs\$(ENV).env" (echo No such env: envs\$(ENV).env && exit 1)
+	@copy /y "envs\$(ENV).env" ".env" >nul
+	@echo Active env is now $(ENV)
 
 login:
 	$(FAB) auth login
