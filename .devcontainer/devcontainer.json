@@ -3,7 +3,10 @@
   "build": { "dockerfile": "../Dockerfile", "context": ".." },
   // "workspaceFolder": "/workspace",
   "runArgs": ["--env-file", "${localWorkspaceFolder}/.env"],
-  "containerEnv": { "PROJECT_ROOT": "/workspaces/fabric-dev" },
+  "containerEnv": {
+  "PROJECT_ROOT": "/workspaces/fabric-dev",
+  "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64"
+},
   "customizations": {
     "vscode": {
       "extensions": ["ms-python.python", "ms-toolsai.jupyter"],
