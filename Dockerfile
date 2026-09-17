@@ -9,6 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl \
         gnupg \
         make \
+        libicu72 \
     && rm -rf /var/lib/apt/lists/*
 
 # ODBC driver for the SQL analytics endpoint
