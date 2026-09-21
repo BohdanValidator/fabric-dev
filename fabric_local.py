@@ -11,6 +11,8 @@ DEFAULT_ROWS = 1000
 
 _ws = None
 _lh = None
+_ws_id = None
+_lh_id = None
 
 
 def bootstrap():
@@ -18,9 +20,17 @@ def bootstrap():
     from dotenv import load_dotenv, find_dotenv
     load_dotenv(find_dotenv(usecwd=True))
 
-    global _ws, _lh
+    global _ws, _lh, _ws_id, _lh_id
     _ws = os.environ["FABRIC_WORKSPACE"]
     _lh = os.environ["FABRIC_LAKEHOUSE"]
+    _ws_id = os.environ.get("FABRIC_WORKSPACE_ID")
+    _lh_id = os.environ.get("FABRIC_LAKEHOUSE_ID")
+
+    if bool(_ws_id) != bool(_lh_id):
+        raise RuntimeError(
+            "Set both FABRIC_WORKSPACE_ID and FABRIC_LAKEHOUSE_ID, "
+            "or leave both unset."
+        )
 
     root = os.environ["PROJECT_ROOT"]
     if root not in sys.path:
@@ -40,7 +50,9 @@ def bootstrap():
 def _jar_config(builder):
     jar_dir = os.environ.get("SPARK_EXTRA_JARS")
     if jar_dir and os.path.isdir(jar_dir):
-        return builder.config("spark.jars", ",".join(glob.glob(f"{jar_dir}/*.jar")))
+        jar_files = sorted(glob.glob(f"{jar_dir}/*.jar"))
+        if jar_files:
+            return builder.config("spark.jars", ",".join(jar_files))
     return builder.config("spark.jars.packages",
                           "io.delta:delta-spark_2.12:3.1.0,"
                           "org.apache.hadoop:hadoop-azure:3.3.4")
@@ -57,17 +69,31 @@ def storage_options() -> dict:
         ),
     }
 
-def set_target(ws: str | None = None, lh: str | None = None):
+def set_target(
+    ws: str | None = None,
+    lh: str | None = None,
+    ws_id: str | None = None,
+    lh_id: str | None = None,
+):
     """Switch workspace/lakehouse without restarting the kernel."""
-    global _ws, _lh
+    global _ws, _lh, _ws_id, _lh_id
+    if (ws_id is None) != (lh_id is None):
+        raise ValueError("Set both ws_id and lh_id, or leave both unset.")
     if ws:
         _ws = ws
     if lh:
         _lh = lh
+    if ws_id is not None:
+        _ws_id = ws_id
+        _lh_id = lh_id
+    elif ws or lh:
+        _ws_id = _lh_id = None
     print(f"target: {_ws} / {_lh}")
 
 
 def table_path(name: str, ws: str | None = None, lh: str | None = None) -> str:
+    if ws is None and lh is None and _ws_id and _lh_id:
+        return f"abfss://{_ws_id}@{ACC}/{_lh_id}/Tables/dbo/{name}"
     w, l = ws or _ws, lh or _lh
     return f"abfss://{w}@{ACC}/{l}.Lakehouse/Tables/dbo/{name}"
 
@@ -75,13 +101,10 @@ def table_path(name: str, ws: str | None = None, lh: str | None = None) -> str:
 def _create_spark():
     from pyspark.sql import SparkSession
     tenant = os.environ["FABRIC_TENANT_ID"]
-    return (
+    builder = (
         SparkSession.builder
         .appName("Local-To-Fabric-OneLake")
         .master("local[*]")
-        .config("spark.jars.packages",
-                "io.delta:delta-spark_2.12:3.1.0,"
-                "org.apache.hadoop:hadoop-azure:3.3.4")
         .config("spark.driver.memory", "12g")
         .config("spark.driver.maxResultSize", "4g")
         .config("spark.sql.shuffle.partitions", "16")
@@ -99,8 +122,8 @@ def _create_spark():
                 os.environ["FABRIC_CLIENT_SECRET"])
         .config(f"spark.hadoop.fs.azure.account.oauth2.client.endpoint.{ACC}",
                 f"https://login.microsoftonline.com/{tenant}/oauth2/token")
-        .getOrCreate()
     )
+    return _jar_config(builder).getOrCreate()
 
 
 def verify_env():

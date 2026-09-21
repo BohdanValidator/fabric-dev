@@ -6,8 +6,52 @@ and Fabric workspaces — without Git integration.
 
 **Platform:** Windows. Times are approximate for a first-time setup: ~45 min.
 
----
+## Docker / Dev Container setup
 
+Docker provides Python 3.11, Java 17, Spark 3.5.1, Delta 3.1.0, the ODBC
+driver, and the OneLake JAR dependencies without requiring the Windows Java
+and Hadoop setup below.
+
+Prerequisites:
+
+- Docker Desktop using the WSL 2 backend
+- VS Code with the Dev Containers extension
+- An uncommitted `.env` file in the repository root
+
+The `.env` file must contain the service-principal credentials, display names,
+and stable OneLake IDs:
+
+```dotenv
+FABRIC_TENANT_ID=<tenant-guid>
+FABRIC_CLIENT_ID=<application-guid>
+FABRIC_CLIENT_SECRET=<secret>
+FABRIC_WORKSPACE=<workspace-display-name>
+FABRIC_LAKEHOUSE=<lakehouse-display-name>
+FABRIC_WORKSPACE_ID=<workspace-guid>
+FABRIC_LAKEHOUSE_ID=<lakehouse-item-guid>
+```
+
+Display names remain useful for Fabric CLI commands. Spark uses the IDs for
+ABFS paths because workspace names containing spaces are not valid ABFS
+authorities. Never commit `.env`.
+
+Open the repository in VS Code and run **Dev Containers: Reopen in Container**.
+VS Code builds the Dockerfile automatically. To build the image manually:
+
+```powershell
+docker build -t fabric-dev-local:docker-setup .
+```
+
+Inside the container, select `/usr/local/bin/python` as the notebook kernel.
+The Dev Container injects Linux-specific `JAVA_HOME` and `PROJECT_ROOT` values
+and prevents the Jupyter extension from replacing them with Windows values
+from `.env`.
+
+The existing Fabric CLI Makefile targets are Windows-oriented and should still
+be run from a Windows terminal. The container is currently for local Python,
+Spark, Delta, SQL, notebook, and OneLake development.
+
+---
 ## 1. Prerequisites
 
 Install these before anything else. Versions matter — the combinations below
@@ -182,9 +226,25 @@ make run NB=automation_test
 
 ### Switching workspaces
 
-Edit `FABRIC_WORKSPACE` and `FABRIC_LAKEHOUSE` in `.env`. This drives both
-the Makefile (which folder notebooks sync to) and the notebook (which
-lakehouse `table_path()` points at).
+Edit `FABRIC_WORKSPACE` and `FABRIC_LAKEHOUSE` in `.env`. This drives the
+Makefile and identifies the target by display name. Spark uses the stable IDs
+below for OneLake paths:
+
+```dotenv
+FABRIC_WORKSPACE_ID=<workspace-guid>
+FABRIC_LAKEHOUSE_ID=<lakehouse-item-guid>
+```
+
+When switching targets at runtime, pass names and IDs together:
+
+```python
+set_target(
+    ws="ValidatorsDevelopment",
+    lh="ValiLakehouse",
+    ws_id="<workspace-guid>",
+    lh_id="<lakehouse-item-guid>",
+)
+```
 
 **Restart the kernel** after changing `.env` — `load_dotenv` does not override
 variables already loaded into the process.
@@ -214,8 +274,9 @@ except ImportError:
     IS_FABRIC = False
 
 if not IS_FABRIC:
+    import os
     import sys
-    sys.path.insert(0, r"C:\files\fabric-dev")
+    sys.path.insert(0, os.environ.get("PROJECT_ROOT", r"C:\files\fabric-dev"))
     from fabric_local import bootstrap, display, table_path, set_target, storage_options
     spark = bootstrap()
 else:
