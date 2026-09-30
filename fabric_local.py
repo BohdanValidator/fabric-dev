@@ -49,7 +49,7 @@ def storage_options() -> dict:
     from azure.identity import ClientSecretCredential
     return {
         "account_name": "onelake",
-        "account_host": ACC,
+        "account_host": "onelake.blob.fabric.microsoft.com",
         "credential": ClientSecretCredential(
             tenant_id=os.environ["FABRIC_TENANT_ID"],
             client_id=os.environ["FABRIC_CLIENT_ID"],

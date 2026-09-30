@@ -8,6 +8,7 @@ ipython==8.26.0
 pandas==2.2.3
 numpy==1.26.4
 itables==2.2.4
+nbformat
 
 # Local config
 python-dotenv==1.0.1
