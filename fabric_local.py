@@ -1,6 +1,7 @@
 """Local stand-ins for the Fabric notebook runtime."""
 import os
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 import glob
 from IPython.display import display as _ipy_display
@@ -49,7 +50,7 @@ def storage_options() -> dict:
     from azure.identity import ClientSecretCredential
     return {
         "account_name": "onelake",
-        "account_host": ACC,
+        "account_host": "onelake.blob.fabric.microsoft.com",
         "credential": ClientSecretCredential(
             tenant_id=os.environ["FABRIC_TENANT_ID"],
             client_id=os.environ["FABRIC_CLIENT_ID"],
@@ -70,6 +71,84 @@ def set_target(ws: str | None = None, lh: str | None = None):
 def table_path(name: str, ws: str | None = None, lh: str | None = None) -> str:
     w, l = ws or _ws, lh or _lh
     return f"abfss://{w}@{ACC}/{l}.Lakehouse/Tables/dbo/{name}"
+
+
+def warehouse_table_path(
+    name: str,
+    workspace_id: str,
+    warehouse_id: str,
+    schema: str = "dbo",
+) -> str:
+    """Return the read-only Delta path published by a Fabric Warehouse."""
+    return (
+        f"abfss://{workspace_id}@{ACC}/"
+        f"{warehouse_id}/Tables/{schema}/{name}"
+    )
+
+
+@dataclass(frozen=True)
+class FileInfo:
+    """The small piece of file information our notebooks need."""
+
+    name: str
+    modifyTime: int
+    isDir: bool
+
+
+def _full_onelake_path(path: str) -> str:
+    """Expand a Fabric-style path such as Files/DF for local Spark."""
+    if "://" in path:
+        return path
+
+    if not _ws or not _lh:
+        raise RuntimeError("Call bootstrap() before accessing OneLake files.")
+
+    return f"abfss://{_ws}@{ACC}/{_lh}.Lakehouse/{path.lstrip('/')}"
+
+
+def list_files(spark, path: str) -> list[FileInfo]:
+    """Local replacement for mssparkutils.fs.ls()."""
+    path = _full_onelake_path(path)
+
+    # PySpark uses Hadoop's filesystem support to access abfss:// paths.
+    hadoop_path = spark._jvm.org.apache.hadoop.fs.Path(path)
+    filesystem = hadoop_path.getFileSystem(spark._jsc.hadoopConfiguration())
+
+    return [
+        FileInfo(
+            name=status.getPath().getName(),
+            modifyTime=status.getModificationTime(),
+            isDir=status.isDirectory(),
+        )
+        for status in filesystem.listStatus(hadoop_path)
+    ]
+
+
+def copy_file(spark, source: str, destination: str) -> None:
+    """Local replacement for mssparkutils.fs.cp() for a single file."""
+    source = _full_onelake_path(source)
+    destination = _full_onelake_path(destination)
+
+    hadoop = spark._jvm.org.apache.hadoop.fs
+    config = spark._jsc.hadoopConfiguration()
+    source_path = hadoop.Path(source)
+    destination_path = hadoop.Path(destination)
+    source_fs = source_path.getFileSystem(config)
+    destination_fs = destination_path.getFileSystem(config)
+
+    # Hadoop's copy helper expects the destination directory to exist.
+    destination_fs.mkdirs(destination_path.getParent())
+    copied = hadoop.FileUtil.copy(
+        source_fs,
+        source_path,
+        destination_fs,
+        destination_path,
+        False,  # Keep the source file.
+        True,   # Replace an existing backup with the same name.
+        config,
+    )
+    if not copied:
+        raise OSError(f"Could not copy {source} to {destination}")
 
 
 def _create_spark():
